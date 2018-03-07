@@ -1,0 +1,25 @@
+[package]
+authors = ["Daniel Egger <daniel@eggers-club.de>"]
+categories = [
+    "embedded",
+    "hardware-support",
+    "no-std",
+]
+description = "A platform agnostic driver to interface with the I2C based TI INA260 power monitor"
+documentation = "https://docs.rs/mag3110"
+keywords = [
+    "embedded-hal-driver",
+    "powermonitor",
+]
+license = "0BSD"
+name = "ina260"
+repository = "https://github.com/therealprof/ina260"
+version = "0.1.0"
+
+[dependencies.cast]
+default-features = false
+version = "0.2.2"
+
+[dependencies.embedded-hal]
+features = ["unproven"]
+version = "0.1.2"
