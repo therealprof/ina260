@@ -1,4 +1,4 @@
-//! A driver for the NXP MAG3110 magnetometer
+//! A driver for the TI INA260 magnetometer
 //!
 //! This driver was built using [`embedded-hal`] traits.
 //!
@@ -6,11 +6,9 @@
 //!
 //! # Examples
 //!
-//! You should find at least one example in the [microbit] crate.
-//!
-//! [microbot]: https://github.com/therealprof/microbit
+//! None
 
-//#![deny(warnings)]
+#![deny(warnings)]
 #![feature(unsize)]
 #![no_std]
 
@@ -174,6 +172,7 @@ impl<I2C, E> INA260<I2C>
 where
     I2C: WriteRead<Error = E> + Write<Error = E>,
 {
+    /// Add a new driver for a INA260 chip found on the I2C bus at the specified address
     pub fn new(i2c: I2C, address: u8) -> Result<Self, E> {
         let mut ina260 = Self {
             i2c,
@@ -185,11 +184,13 @@ where
         Ok(ina260)
     }
 
+    /// Put the INA260 chip managed by the driver in shut down and release I2C resource
     pub fn release(mut self) -> I2C {
         let _ = self.set_operating_mode(OperMode::SHUTDOWN);
         self.i2c
     }
 
+    /// Change the averaging mode of the INA260
     pub fn set_averaging_mode(&mut self, a: Averaging) -> Result<(), E> {
         let bits = a.bits();
         let state = (self.state & !Averaging::AVG1.bits()) | bits;
@@ -198,6 +199,8 @@ where
         Ok(())
     }
 
+    /// Change the operating mode of the INA260. Please note that if you change to Triggered mode,
+    /// you'll have to call this method again each time you would like to get a new sample.
     pub fn set_operating_mode(&mut self, o: OperMode) -> Result<(), E> {
         let bits = o.bits();
         let state = (self.state & !OperMode::SHUTDOWN.bits()) | bits;
@@ -206,6 +209,7 @@ where
         Ok(())
     }
 
+    /// Change the shut current conversion time
     pub fn set_scconvtime_mode(&mut self, s: SCConvTime) -> Result<(), E> {
         let bits = s.bits();
         let state = (self.state & !SCConvTime::US140.bits()) | bits;
@@ -214,6 +218,7 @@ where
         Ok(())
     }
 
+    /// Change the bus voltage conversion time
     pub fn set_bvconvtime_mode(&mut self, b: BVConvTime) -> Result<(), E> {
         let bits = b.bits();
         let state = (self.state & !BVConvTime::US140.bits()) | bits;
