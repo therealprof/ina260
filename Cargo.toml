@@ -14,7 +14,7 @@ keywords = [
 license = "0BSD"
 name = "ina260"
 repository = "https://github.com/therealprof/ina260"
-version = "0.1.1"
+version = "0.2.0"
 
 [dependencies.cast]
 default-features = false
@@ -22,4 +22,4 @@ version = "0.2.2"
 
 [dependencies.embedded-hal]
 features = ["unproven"]
-version = "0.1.2"
+version = "0.2.0"
