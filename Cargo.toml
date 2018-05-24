@@ -6,7 +6,7 @@ categories = [
     "no-std",
 ]
 description = "A platform agnostic driver to interface with the I2C based TI INA260 power monitor"
-documentation = "https://docs.rs/mag3110"
+documentation = "https://docs.rs/ina260"
 keywords = [
     "embedded-hal-driver",
     "powermonitor",
@@ -14,7 +14,7 @@ keywords = [
 license = "0BSD"
 name = "ina260"
 repository = "https://github.com/therealprof/ina260"
-version = "0.2.0"
+version = "0.2.1"
 
 [dependencies.cast]
 default-features = false
@@ -22,4 +22,4 @@ version = "0.2.2"
 
 [dependencies.embedded-hal]
 features = ["unproven"]
-version = "0.2.0"
+version = "0.2.1"
