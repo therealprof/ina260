@@ -43,8 +43,8 @@ pub enum Register {
 }
 
 impl Register {
-    pub fn addr(&self) -> u8 {
-        *self as u8
+    pub fn addr(self) -> u8 {
+        self as u8
     }
 }
 
@@ -72,8 +72,8 @@ pub enum Averaging {
 }
 
 impl Averaging {
-    pub fn bits(&self) -> u16 {
-        *self as u16
+    pub fn bits(self) -> u16 {
+        self as u16
     }
 }
 
@@ -101,8 +101,8 @@ pub enum BVConvTime {
 }
 
 impl BVConvTime {
-    pub fn bits(&self) -> u16 {
-        *self as u16
+    pub fn bits(self) -> u16 {
+        self as u16
     }
 }
 
@@ -130,8 +130,8 @@ pub enum SCConvTime {
 }
 
 impl SCConvTime {
-    pub fn bits(&self) -> u16 {
-        *self as u16
+    pub fn bits(self) -> u16 {
+        self as u16
     }
 }
 
@@ -157,8 +157,8 @@ pub enum OperMode {
 }
 
 impl OperMode {
-    pub fn bits(&self) -> u16 {
-        *self as u16
+    pub fn bits(self) -> u16 {
+        self as u16
     }
 }
 
@@ -177,7 +177,9 @@ where
         let mut ina260 = Self {
             i2c,
             address,
-            state: OperMode::SCBVC.bits() | Averaging::AVG1.bits() | SCConvTime::MS1_1.bits()
+            state: OperMode::SCBVC.bits()
+                | Averaging::AVG1.bits()
+                | SCConvTime::MS1_1.bits()
                 | BVConvTime::MS1_1.bits(),
         };
         let _ = ina260.write_register(Register::CONFIG, 0x8000);
@@ -194,7 +196,7 @@ where
     pub fn set_averaging_mode(&mut self, a: Averaging) -> Result<(), E> {
         let bits = a.bits();
         let state = (self.state & !Averaging::AVG1.bits()) | bits;
-        let _ = self.write_register(Register::CONFIG, state)?;
+        self.write_register(Register::CONFIG, state)?;
         self.state = state;
         Ok(())
     }
@@ -204,7 +206,7 @@ where
     pub fn set_operating_mode(&mut self, o: OperMode) -> Result<(), E> {
         let bits = o.bits();
         let state = (self.state & !OperMode::SHUTDOWN.bits()) | bits;
-        let _ = self.write_register(Register::CONFIG, state)?;
+        self.write_register(Register::CONFIG, state)?;
         self.state = state;
         Ok(())
     }
@@ -213,7 +215,7 @@ where
     pub fn set_scconvtime_mode(&mut self, s: SCConvTime) -> Result<(), E> {
         let bits = s.bits();
         let state = (self.state & !SCConvTime::US140.bits()) | bits;
-        let _ = self.write_register(Register::CONFIG, state)?;
+        self.write_register(Register::CONFIG, state)?;
         self.state = state;
         Ok(())
     }
@@ -222,7 +224,7 @@ where
     pub fn set_bvconvtime_mode(&mut self, b: BVConvTime) -> Result<(), E> {
         let bits = b.bits();
         let state = (self.state & !BVConvTime::US140.bits()) | bits;
-        let _ = self.write_register(Register::CONFIG, state)?;
+        self.write_register(Register::CONFIG, state)?;
         self.state = state;
         Ok(())
     }
