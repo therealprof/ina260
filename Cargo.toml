@@ -13,8 +13,9 @@ keywords = [
 ]
 license = "0BSD"
 name = "ina260"
+readme = "README.md"
 repository = "https://github.com/therealprof/ina260"
-version = "0.2.2"
+version = "0.2.3"
 
 [dependencies.cast]
 default-features = false

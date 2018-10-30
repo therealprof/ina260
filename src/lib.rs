@@ -9,7 +9,6 @@
 //! None
 
 #![deny(warnings)]
-#![feature(unsize)]
 #![no_std]
 
 extern crate cast;
