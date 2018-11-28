@@ -255,10 +255,25 @@ where
         Ok((u16(buffer[0]) << 8 | u16(buffer[1])) as i16)
     }
 
-    /// Delivers the measured raw current in uA
+    /// Delivers the measured current in uA
     pub fn current(&mut self) -> Result<i32, E> {
         let raw = self.current_raw()?;
         Ok(i32(raw) * 1250)
+    }
+
+    /// Delivers the measured current in as tuple of full volts and tenth millivolts
+    pub fn current_split(&mut self) -> Result<(i8, u32), E> {
+        let raw = i32::from(self.current_raw()?);
+        if raw >= 0 {
+            let full = (0..=raw).step_by(800).skip(1).count() as i32;
+            let rest = (raw - (full * 800)) * 125;
+            Ok((full as i8, rest as u32))
+        } else
+        {
+            let full = (raw..=0).step_by(800).skip(1).count() as i32;
+            let rest = -(raw + (full * 800)) * 125;
+            Ok((full as i8, rest as u32))
+        }
     }
 
     /// Delivers the measured raw voltage in 1.25mV per bit
@@ -270,13 +285,21 @@ where
         Ok(u16(buffer[0]) << 8 | u16(buffer[1]))
     }
 
-    /// Delivers the measured raw voltage in uV
+    /// Delivers the measured voltage in uV
     pub fn voltage(&mut self) -> Result<u32, E> {
         let raw = self.voltage_raw()?;
         Ok(u32(raw) * 1250)
     }
 
-    /// Delivers the measured raw power in 10mW per bit
+    /// Delivers the measured voltage in as tuple of full volts and tenth millivolts
+    pub fn voltage_split(&mut self) -> Result<(u8, u32), E> {
+        let raw = u32::from(self.voltage_raw()?);
+        let full = (0..=raw).step_by(800).skip(1).count() as u32;
+        let rest = (raw - (full * 800)) * 125;
+        Ok((full as u8, rest))
+    }
+
+    /// Delivers the measured power in 10mW per bit
     pub fn power_raw(&mut self) -> Result<u16, E> {
         let mut buffer: [u8; 2] = unsafe { mem::uninitialized() };
         self.i2c
@@ -289,6 +312,14 @@ where
     pub fn power(&mut self) -> Result<u32, E> {
         let raw = self.power_raw()?;
         Ok(u32(raw) * 10)
+    }
+
+    /// Delivers the measured power in as tuple of full volts and tenth millivolts
+    pub fn power_split(&mut self) -> Result<(u8, u32), E> {
+        let raw = u32::from(self.power_raw()?);
+        let full = (0..=raw).step_by(100).skip(1).count() as u32;
+        let rest = (raw - (full * 100)) * 100;
+        Ok((full as u8, rest))
     }
 
     fn write_register(&mut self, reg: Register, data: u16) -> Result<(), E> {
