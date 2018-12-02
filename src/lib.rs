@@ -270,8 +270,8 @@ where
             Ok((full as i8, rest as u32))
         } else
         {
-            let full = (raw..=0).step_by(800).skip(1).count() as i32;
-            let rest = -(raw + (full * 800)) * 125;
+            let full = -((raw..=0).step_by(800).skip(1).count() as i32);
+            let rest = -(raw - (full * 800)) * 125;
             Ok((full as i8, rest as u32))
         }
     }
@@ -318,7 +318,7 @@ where
     pub fn power_split(&mut self) -> Result<(u8, u32), E> {
         let raw = u32::from(self.power_raw()?);
         let full = (0..=raw).step_by(100).skip(1).count() as u32;
-        let rest = (raw - (full * 100)) * 100;
+        let rest = (raw - (full * 100)) * 1000;
         Ok((full as u8, rest))
     }
 
