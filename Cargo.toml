@@ -15,7 +15,7 @@ license = "0BSD"
 name = "ina260"
 readme = "README.md"
 repository = "https://github.com/therealprof/ina260"
-version = "0.2.4"
+version = "0.2.5"
 
 [dependencies.cast]
 default-features = false
