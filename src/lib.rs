@@ -194,7 +194,7 @@ where
     /// Change the averaging mode of the INA260
     pub fn set_averaging_mode(&mut self, a: Averaging) -> Result<(), E> {
         let bits = a.bits();
-        let state = (self.state & !Averaging::AVG1.bits()) | bits;
+        let state = (self.state & !Averaging::AVG1024.bits()) | bits;
         self.write_register(Register::CONFIG, state)?;
         self.state = state;
         Ok(())
@@ -204,7 +204,7 @@ where
     /// you'll have to call this method again each time you would like to get a new sample.
     pub fn set_operating_mode(&mut self, o: OperMode) -> Result<(), E> {
         let bits = o.bits();
-        let state = (self.state & !OperMode::SHUTDOWN.bits()) | bits;
+        let state = (self.state & !OperMode::SCBVC.bits()) | bits;
         self.write_register(Register::CONFIG, state)?;
         self.state = state;
         Ok(())
@@ -213,7 +213,7 @@ where
     /// Change the shut current conversion time
     pub fn set_scconvtime_mode(&mut self, s: SCConvTime) -> Result<(), E> {
         let bits = s.bits();
-        let state = (self.state & !SCConvTime::US140.bits()) | bits;
+        let state = (self.state & !SCConvTime::MS8_244.bits()) | bits;
         self.write_register(Register::CONFIG, state)?;
         self.state = state;
         Ok(())
@@ -222,7 +222,7 @@ where
     /// Change the bus voltage conversion time
     pub fn set_bvconvtime_mode(&mut self, b: BVConvTime) -> Result<(), E> {
         let bits = b.bits();
-        let state = (self.state & !BVConvTime::US140.bits()) | bits;
+        let state = (self.state & !BVConvTime::MS8_244.bits()) | bits;
         self.write_register(Register::CONFIG, state)?;
         self.state = state;
         Ok(())
@@ -268,8 +268,7 @@ where
             let full = (0..=raw).step_by(800).skip(1).count() as i32;
             let rest = (raw - (full * 800)) * 125;
             Ok((full as i8, rest as u32))
-        } else
-        {
+        } else {
             let full = -((raw..=0).step_by(800).skip(1).count() as i32);
             let rest = -(raw - (full * 800)) * 125;
             Ok((full as i8, rest as u32))
