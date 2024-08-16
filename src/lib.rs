@@ -164,6 +164,104 @@ impl OperMode {
     }
 }
 
+#[allow(dead_code)]
+#[derive(Copy, Clone)]
+/// Mask/Enable Register
+///
+/// The Mask/Enable Register selects the function that is enabled to control the ALERT pin as well as how that pin
+/// functions. If multiple functions are enabled, the highest significant bit position Alert Function (D15-D11) takes
+/// priority and responds to the Alert Limit Register.
+pub enum MaskEnable {
+    /// Over Current Limit
+    ///
+    /// Setting this bit high configures the ALERT pin to be asserted if the current
+    /// measurement following a conversion exceeds the value programmed in the Alert
+    /// Limit Register.
+    OCL = 0b1000_0000_0000_0000,
+    /// Under Current Limit
+    ///
+    /// Setting this bit high configures the ALERT pin to be asserted if the current
+    /// measurement following a conversion drops below the value programmed in the
+    /// Alert Limit Register.
+    UCL = 0b0100_0000_0000_0000,
+    /// Bus Voltage Over-Voltage
+    ///
+    /// Setting this bit high configures the ALERT pin to be asserted if the bus voltage
+    /// measurement following a conversion exceeds the value programmed in the Alert
+    /// Limit Register.
+    BOL = 0b0010_0000_0000_0000,
+    /// Bus Voltage Under-Voltage
+    ///
+    /// Setting this bit high configures the ALERT pin to be asserted if the bus voltage
+    /// measurement following a conversion drops below the value programmed in the
+    /// Alert Limit Register.
+    BUL = 0b0001_0000_0000_0000,
+    /// Power Over-Limit
+    ///
+    /// Setting this bit high configures the ALERT pin to be asserted if the Power
+    /// calculation made following a bus voltage measurement exceeds the value
+    /// programmed in the Alert Limit Register.
+    POL = 0b0000_1000_0000_0000,
+    /// Conversion Ready
+    ///
+    /// Setting this bit high configures the ALERT pin to be asserted when the Conversion
+    /// Ready Flag, Bit 3, is asserted indicating that the device is ready for the next
+    /// conversion.
+    CNVR = 0b0000_0100_0000_0000,
+    /// Alert Function Flag
+    ///
+    /// While only one Alert Function can be monitored at the ALERT pin at a time, the
+    /// Conversion Ready can also be enabled to assert the ALERT pin. Reading the Alert
+    /// Function Flag following an alert allows the user to determine if the Alert Function
+    /// was the source of the Alert.
+    ///
+    /// When the Alert Latch Enable bit is set to Latch mode, the Alert Function Flag bit
+    /// clears only when the Mask/Enable Register is read. When the Alert Latch Enable
+    /// bit is set to Transparent mode, the Alert Function Flag bit is cleared following the
+    /// next conversion that does not result in an Alert condition.
+    AFF = 0b0000_0000_0001_0000,
+    /// Conversion Ready
+    ///
+    /// Although the device can be read at any time, and the data from the last conversion
+    /// is available, the Conversion Ready Flag bit is provided to help coordinate one-shot
+    /// or triggered conversions. The Conversion Ready Flag bit is set after all
+    /// conversions, averaging, and multiplications are complete. Conversion Ready Flag
+    /// bit clears under the following conditions:
+    ///
+    /// 1.) Writing to the Configuration Register (except for Power-Down selection)
+    /// 2.) Reading the Mask/Enable Register
+    CVRF = 0b0000_0000_0000_1000,
+    /// Math Overflow Flag
+    ///
+    /// This bit is set to '1' if an arithmetic operation resulted in an overflow error. It
+    /// indicates that power data may have exceeded the maximum reportable value of
+    /// 419.43 W.
+    OVF = 0b0000_0000_0000_0100,
+    /// Alert Polarity bit
+    ///
+    /// 1 = Inverted (active-high open collector)
+    /// 0 = Normal (active-low open collector) (default)
+    APOL = 0b0000_0000_0000_0010,
+    /// Alert Latch Enable; configures the latching feature of the ALERT pin and Alert Flag
+    /// bits.
+    ///
+    /// 1 = Latch enabled
+    /// 0 = Transparent (default)
+    ///
+    /// When the Alert Latch Enable bit is set to Transparent mode, the ALERT pin and
+    /// Flag bit resets to the idle states when the fault has been cleared. When the Alert
+    /// Latch Enable bit is set to Latch mode, the ALERT pin and Alert Flag bit remains
+    /// active following a fault until the Mask/Enable Register has been read.
+    LEN = 0b0000_0000_0000_0001,
+}
+
+impl MaskEnable {
+    #[inline(always)]
+    pub fn bits(self) -> u16 {
+        self as u16
+    }
+}
+
 #[inline(always)]
 fn write_register<I2C>(
     i2c: &mut I2C,
@@ -203,6 +301,28 @@ where
         };
         write_register(i2c, address, Register::CONFIG, 0x8000)?;
         Ok(ina260)
+    }
+
+    /// Change the Mask/Enable mode of the INA260
+    ///
+    /// The Mask/Enable Register selects the function that is enabled to control the ALERT pin as well as how that pin
+    /// functions. If multiple functions are enabled, the highest significant bit position Alert Function (D15-D11) takes
+    /// priority and responds to the Alert Limit Register.
+    #[inline(always)]
+    pub fn set_mask_enable(&mut self, i2c: &mut I2C, m: MaskEnable) -> Result<(), E> {
+        write_register(i2c, self.address, Register::MASK_ENABLE, m.bits())?;
+        Ok(())
+    }
+
+    /// Set the alert limit of the INA260
+    ///
+    /// The Alert Limit Register contains the value used to compare to the register selected in the Mask/Enable Register
+    /// to determine if a limit has been exceeded. The format for this register will match the format of the register that is
+    /// selected for comparison.
+    #[inline(always)]
+    pub fn set_alert_limit(&mut self, i2c: &mut I2C, limit: u16) -> Result<(), E> {
+        write_register(i2c, self.address, Register::ALERT_LIMIT, limit)?;
+        Ok(())
     }
 
     /// Change the averaging mode of the INA260
@@ -364,6 +484,26 @@ where
     pub fn release(mut self) -> I2C {
         let _ = self.set_operating_mode(OperMode::SHUTDOWN);
         self.0
+    }
+
+    /// Change the Mask/Enable mode of the INA260
+    ///
+    /// The Mask/Enable Register selects the function that is enabled to control the ALERT pin as well as how that pin
+    /// functions. If multiple functions are enabled, the highest significant bit position Alert Function (D15-D11) takes
+    /// priority and responds to the Alert Limit Register.
+    #[inline(always)]
+    pub fn set_mask_enable(&mut self, m: MaskEnable) -> Result<(), E> {
+        self.1.set_mask_enable(&mut self.0, m)
+    }
+
+    /// Set the alert limit of the INA260
+    ///
+    /// The Alert Limit Register contains the value used to compare to the register selected in the Mask/Enable Register
+    /// to determine if a limit has been exceeded. The format for this register will match the format of the register that is
+    /// selected for comparison.
+    #[inline(always)]
+    pub fn set_alert_limit(&mut self, l: u16) -> Result<(), E> {
+        self.1.set_alert_limit(&mut self.0, l)
     }
 
     /// Change the averaging mode of the INA260
