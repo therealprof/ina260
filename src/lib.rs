@@ -1,5 +1,3 @@
-#![no_std]
-
 //! A driver for the TI INA260 magnetometer
 //!
 //! This driver was built using [`embedded-hal`] traits.
@@ -10,8 +8,9 @@
 //!
 //! None
 
-#[cfg(feature = "defmt")]
-use defmt::{debug, error, trace, Format};
+#![no_std]
+#![macro_use]
+pub(crate) mod fmt;
 
 #[cfg(not(any(feature = "sync", feature = "async")))]
 compile_error!("You should probably choose at least one of `sync` and `async` features.");
@@ -28,7 +27,7 @@ use embedded_hal_async::i2c::I2c as AsyncI2c;
 #[allow(dead_code)]
 #[allow(non_camel_case_types)]
 #[derive(Copy, Clone)]
-#[cfg_attr(feature = "defmt", derive(Format))]
+#[cfg_attr(feature = "defmt-03", derive(defmt::Format))]
 pub enum Register {
     // Configuration Register
     CONFIG = 0x00,
@@ -63,7 +62,7 @@ impl From<Register> for u8 {
 
 #[allow(dead_code)]
 #[derive(Copy, Clone)]
-#[cfg_attr(feature = "defmt", derive(Format))]
+#[cfg_attr(feature = "defmt-03", derive(defmt::Format))]
 /// Averaging Mode
 /// Determines the number of samples that are collected and averaged.
 pub enum Averaging {
@@ -94,7 +93,7 @@ impl Averaging {
 
 #[allow(dead_code)]
 #[derive(Copy, Clone)]
-#[cfg_attr(feature = "defmt", derive(Format))]
+#[cfg_attr(feature = "defmt-03", derive(defmt::Format))]
 /// Bus Voltage Conversion Time
 /// Sets the conversion time for the bus voltage measurement
 pub enum BVConvTime {
@@ -125,7 +124,7 @@ impl BVConvTime {
 
 #[allow(dead_code)]
 #[derive(Copy, Clone)]
-#[cfg_attr(feature = "defmt", derive(Format))]
+#[cfg_attr(feature = "defmt-03", derive(defmt::Format))]
 /// Shunt Current Conversion Time
 /// Sets the conversion time for the shunt current measurement
 pub enum SCConvTime {
@@ -156,7 +155,7 @@ impl SCConvTime {
 
 #[allow(dead_code)]
 #[derive(Copy, Clone)]
-#[cfg_attr(feature = "defmt", derive(Format))]
+#[cfg_attr(feature = "defmt-03", derive(defmt::Format))]
 /// Operating Mode
 /// Selects continuous, triggered, or power-down mode of operation.
 pub enum OperMode {
