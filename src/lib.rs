@@ -10,19 +10,20 @@
 //!
 //! None
 
-#[cfg(all(feature = "blocking", feature = "async"))]
-compile_error!("feature \"blocking\" and feature \"async\" cannot be enabled at the same time");
-
 #[cfg(feature = "defmt")]
 use defmt::{debug, error, trace, Format};
 
-#[cfg(feature = "blocking")]
+#[cfg(not(any(feature = "sync", feature = "async")))]
+compile_error!("You should probably choose at least one of `sync` and `async` features.");
+
+#[cfg(feature = "sync")]
+use embedded_hal::i2c::ErrorType;
+#[cfg(feature = "sync")]
 use embedded_hal::i2c::I2c;
-
 #[cfg(feature = "async")]
-use embedded_hal_async::i2c::I2c;
-
-use embedded_hal::i2c::Error;
+use embedded_hal_async::i2c::ErrorType as AsyncErrorType;
+#[cfg(feature = "async")]
+use embedded_hal_async::i2c::I2c as AsyncI2c;
 
 #[allow(dead_code)]
 #[allow(non_camel_case_types)]
@@ -280,21 +281,28 @@ impl MaskEnable {
     }
 }
 
-#[maybe_async_cfg::maybe(sync(feature = "blocking", keep_self), async(feature = "async"))]
-pub struct INA260<I2C> {
+#[maybe_async_cfg::maybe(
+    sync(feature = "sync", self = "INA260"),
+    async(feature = "async", keep_self)
+)]
+pub struct AsyncINA260<I2C> {
     i2c: I2C,
     address: u8,
     state: u16,
 }
 
-#[maybe_async_cfg::maybe(sync(feature = "blocking", keep_self), async(feature = "async",))]
-impl<I2C, E> INA260<I2C>
-where
-    I2C: I2c<Error = E>,
-{
+#[maybe_async_cfg::maybe(
+    sync(
+        feature = "sync",
+        self = "INA260",
+        idents(AsyncI2c(sync = "I2c"), AsyncErrorType(sync = "ErrorType"))
+    ),
+    async(feature = "async", keep_self)
+)]
+impl<I2C: AsyncI2c + AsyncErrorType> AsyncINA260<I2C> {
     /// Add a new driver for a INA260 chip found on the I2C bus at the specified address
     #[inline(always)]
-    pub async fn new_with_address(i2c: I2C, address: u8) -> Result<Self, E> {
+    pub async fn new_with_address(i2c: I2C, address: u8) -> Result<Self, I2C::Error> {
         let mut ina260 = Self {
             i2c,
             address,
@@ -308,7 +316,7 @@ where
     }
 
     #[inline(always)]
-    pub async fn new(i2c: I2C) -> Result<Self, E> {
+    pub async fn new(i2c: I2C) -> Result<Self, I2C::Error> {
         Self::new_with_address(i2c, 0x40).await
     }
 
@@ -324,7 +332,7 @@ where
     /// functions. If multiple functions are enabled, the highest significant bit position Alert Function (D15-D11) takes
     /// priority and responds to the Alert Limit Register.
     #[inline(always)]
-    pub async fn set_mask_enable(&mut self, m: MaskEnable) -> Result<(), E> {
+    pub async fn set_mask_enable(&mut self, m: MaskEnable) -> Result<(), I2C::Error> {
         self.write_reg(Register::MASK_ENABLE, m.bits()).await
     }
 
@@ -334,13 +342,13 @@ where
     /// to determine if a limit has been exceeded. The format for this register will match the format of the register that is
     /// selected for comparison.
     #[inline(always)]
-    pub async fn set_alert_limit(&mut self, limit: u16) -> Result<(), E> {
+    pub async fn set_alert_limit(&mut self, limit: u16) -> Result<(), I2C::Error> {
         self.write_reg(Register::ALERT_LIMIT, limit).await
     }
 
     /// Change the averaging mode of the INA260
     #[inline(always)]
-    pub async fn set_averaging_mode(&mut self, a: Averaging) -> Result<(), E> {
+    pub async fn set_averaging_mode(&mut self, a: Averaging) -> Result<(), I2C::Error> {
         let bits = a.bits();
         let state = (self.state & !Averaging::AVG1024.bits()) | bits;
         self.write_reg(Register::CONFIG, state).await?;
@@ -351,7 +359,7 @@ where
     /// Change the operating mode of the INA260. Please note that if you change to Triggered mode,
     /// you'll have to call this method again each time you would like to get a new sample.
     #[inline(always)]
-    pub async fn set_operating_mode(&mut self, o: OperMode) -> Result<(), E> {
+    pub async fn set_operating_mode(&mut self, o: OperMode) -> Result<(), I2C::Error> {
         let bits = o.bits();
         let state = (self.state & !OperMode::SCBVC.bits()) | bits;
         self.write_reg(Register::CONFIG, state).await?;
@@ -361,7 +369,7 @@ where
 
     /// Change the shut current conversion time
     #[inline(always)]
-    pub async fn set_scconvtime_mode(&mut self, s: SCConvTime) -> Result<(), E> {
+    pub async fn set_scconvtime_mode(&mut self, s: SCConvTime) -> Result<(), I2C::Error> {
         let bits = s.bits();
         let state = (self.state & !SCConvTime::MS8_244.bits()) | bits;
         self.write_reg(Register::CONFIG, state).await?;
@@ -371,7 +379,7 @@ where
 
     /// Change the bus voltage conversion time
     #[inline(always)]
-    pub async fn set_bvconvtime_mode(&mut self, b: BVConvTime) -> Result<(), E> {
+    pub async fn set_bvconvtime_mode(&mut self, b: BVConvTime) -> Result<(), I2C::Error> {
         let bits = b.bits();
         let state = (self.state & !BVConvTime::MS8_244.bits()) | bits;
         self.write_reg(Register::CONFIG, state).await?;
@@ -381,32 +389,32 @@ where
 
     /// Delivers the unique chip id
     #[inline(always)]
-    pub async fn did(&mut self) -> Result<u16, E> {
+    pub async fn did(&mut self) -> Result<u16, I2C::Error> {
         Ok(self.read_reg(Register::DIE_ID.addr()).await? >> 4)
     }
 
     /// Delivers the die revision id
     #[inline(always)]
-    pub async fn rid(&mut self) -> Result<u16, E> {
+    pub async fn rid(&mut self) -> Result<u16, I2C::Error> {
         Ok(self.read_reg(Register::DIE_ID.addr()).await? & 0b1111)
     }
 
     /// Delivers the measured raw current in 1.25mA per bit
     #[inline(always)]
-    pub async fn current_raw(&mut self) -> Result<i16, E> {
+    pub async fn current_raw(&mut self) -> Result<i16, I2C::Error> {
         Ok(self.read_reg(Register::CURRENT.addr()).await? as i16)
     }
 
     /// Delivers the measured current in uA
     #[inline(always)]
-    pub async fn current(&mut self) -> Result<i32, E> {
+    pub async fn current(&mut self) -> Result<i32, I2C::Error> {
         let raw = i32::from(self.current_raw().await?);
         Ok(raw * 1250)
     }
 
     /// Delivers the measured current in as tuple of full volts and tenth millivolts
     #[inline(always)]
-    pub async fn current_split(&mut self) -> Result<(i8, u32), E> {
+    pub async fn current_split(&mut self) -> Result<(i8, u32), I2C::Error> {
         let raw = i32::from(self.current_raw().await?);
         if raw >= 0 {
             let full = (0..=raw).step_by(800).skip(1).count() as i32;
@@ -421,20 +429,20 @@ where
 
     /// Delivers the measured raw voltage in 1.25mV per bit
     #[inline(always)]
-    pub async fn voltage_raw(&mut self) -> Result<u16, E> {
+    pub async fn voltage_raw(&mut self) -> Result<u16, I2C::Error> {
         self.read_reg(Register::VOLTAGE.addr()).await
     }
 
     /// Delivers the measured voltage in uV
     #[inline(always)]
-    pub async fn voltage(&mut self) -> Result<u32, E> {
+    pub async fn voltage(&mut self) -> Result<u32, I2C::Error> {
         let raw = u32::from(self.voltage_raw().await?);
         Ok(raw * 1250)
     }
 
     /// Delivers the measured voltage in as tuple of full volts and tenth millivolts
     #[inline(always)]
-    pub async fn voltage_split(&mut self) -> Result<(u8, u32), E> {
+    pub async fn voltage_split(&mut self) -> Result<(u8, u32), I2C::Error> {
         let raw = u32::from(self.voltage_raw().await?);
         let full = (0..=raw).step_by(800).skip(1).count() as u32;
         let rest = (raw - (full * 800)) * 125;
@@ -443,20 +451,20 @@ where
 
     /// Delivers the measured power in 10mW per bit
     #[inline(always)]
-    pub async fn power_raw(&mut self) -> Result<u16, E> {
+    pub async fn power_raw(&mut self) -> Result<u16, I2C::Error> {
         self.read_reg(Register::POWER.addr()).await
     }
 
     /// Delivers the measured raw power in mW
     #[inline(always)]
-    pub async fn power(&mut self) -> Result<u32, E> {
+    pub async fn power(&mut self) -> Result<u32, I2C::Error> {
         let raw = u32::from(self.power_raw().await?);
         Ok(raw * 10)
     }
 
     /// Delivers the measured power in as tuple of full volts and tenth millivolts
     #[inline(always)]
-    pub async fn power_split(&mut self) -> Result<(u8, u32), E> {
+    pub async fn power_split(&mut self) -> Result<(u8, u32), I2C::Error> {
         let raw = u32::from(self.power_raw().await?);
         let full = (0..=raw).step_by(100).skip(1).count() as u32;
         let rest = (raw - (full * 100)) * 1000;
@@ -464,7 +472,7 @@ where
     }
 
     #[inline(always)]
-    async fn write_reg<R: Into<u8>>(&mut self, reg: R, value: u16) -> Result<(), E> {
+    async fn write_reg<R: Into<u8>>(&mut self, reg: R, value: u16) -> Result<(), I2C::Error> {
         let bytes = value.to_be_bytes();
         self.i2c
             .write(self.address, &[reg.into(), bytes[0], bytes[1]])
@@ -472,7 +480,7 @@ where
     }
 
     #[inline(always)]
-    async fn read_reg<R: Into<u8>>(&mut self, reg: R) -> Result<u16, E> {
+    async fn read_reg<R: Into<u8>>(&mut self, reg: R) -> Result<u16, I2C::Error> {
         let mut buffer = [0u8; 2];
         self.i2c
             .write_read(self.address, &[reg.into()], &mut buffer)
