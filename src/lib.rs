@@ -280,7 +280,7 @@ impl MaskEnable {
     }
 }
 
-#[maybe_async_cfg::maybe(
+#[maybe_async_cfg2::maybe(
     sync(feature = "sync", self = "INA260"),
     async(feature = "async", keep_self)
 )]
@@ -290,7 +290,7 @@ pub struct AsyncINA260<I2C> {
     state: u16,
 }
 
-#[maybe_async_cfg::maybe(
+#[maybe_async_cfg2::maybe(
     sync(
         feature = "sync",
         self = "INA260",
