@@ -471,18 +471,23 @@ impl<I2C: AsyncI2c + AsyncErrorType> AsyncINA260<I2C> {
 
     #[inline(always)]
     async fn write_reg<R: Into<u8>>(&mut self, reg: R, value: u16) -> Result<(), I2C::Error> {
+        let reg = reg.into();
+        debug!("W @0x{:x}={:x}", reg, value);
         let bytes = value.to_be_bytes();
         self.i2c
-            .write(self.address, &[reg.into(), bytes[0], bytes[1]])
+            .write(self.address, &[reg, bytes[0], bytes[1]])
             .await
     }
 
     #[inline(always)]
     async fn read_reg<R: Into<u8>>(&mut self, reg: R) -> Result<u16, I2C::Error> {
+        let reg = reg.into();
         let mut buffer = [0u8; 2];
         self.i2c
-            .write_read(self.address, &[reg.into()], &mut buffer)
+            .write_read(self.address, &[reg], &mut buffer)
             .await?;
-        Ok(u16::from_be_bytes(buffer))
+        let value = u16::from_be_bytes(buffer);
+        debug!("R @0x{:x}={:x}", reg, value);
+        Ok(value)
     }
 }
