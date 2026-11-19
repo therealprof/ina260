@@ -9,7 +9,6 @@
 //! None
 
 #![no_std]
-#![macro_use]
 pub(crate) mod fmt;
 
 #[cfg(not(any(feature = "sync", feature = "async")))]
