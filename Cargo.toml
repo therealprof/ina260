@@ -1,5 +1,5 @@
 [package]
-authors = ["Daniel Egger <daniel@eggers-club.de>"]
+authors = ["Daniel Egger <daniel@eggers-club.de>", "Georges Palauqui <g.palauqui@gptechinno.com>"]
 categories = [
     "embedded",
     "hardware-support",
